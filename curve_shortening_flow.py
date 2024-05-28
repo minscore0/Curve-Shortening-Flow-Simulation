@@ -38,8 +38,19 @@ def prepare_data(curve_data): # reparameterizes and interpolates the curve to wi
     plt.show()
 
     new_data = [(round(x), round(y)) for x, y in zip(new_x, new_y)]
-    print(len(new_data))
     return new_data
+
+
+def connect_endpoints(curve_data):
+    start_point = curve_data[0]
+    end_point = curve_data[-1]
+    dist = math.dist(start_point, end_point)
+    num_points = round(dist/20)
+    x_diff = (curve_data[-1][0]-curve_data[0][0]) / num_points
+    y_diff = (curve_data[-1][1]-curve_data[0][1]) / num_points
+    for i in range(1, num_points+1):
+        curve_data.append((end_point[0]-((i)*x_diff), end_point[1]-((i)*y_diff)))
+    return curve_data
 
 
 def collect_data(drawing, curve_data): # extends curve to current mouse position
@@ -89,10 +100,11 @@ while running:
             drawing = True
         
         elif event.type == pygame.MOUSEBUTTONUP and not started:
-            drawing = False
             print("called")
-            curve_data.append(curve_data[0])
-            curve_data = prepare_data(curve_data)
+            if drawing:
+                curve_data = connect_endpoints(curve_data)
+                curve_data = prepare_data(curve_data)
+            drawing = False
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_q: # quit program
@@ -107,7 +119,8 @@ while running:
             elif event.key == pygame.K_t: # for testing
                 print("test started")
 
-    curve_data = collect_data(drawing, curve_data)
+    if drawing:
+        curve_data = collect_data(drawing, curve_data)
     update_display(screen, curve_data)
 pygame.quit()
 
