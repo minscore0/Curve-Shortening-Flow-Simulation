@@ -3,6 +3,7 @@ from scipy.interpolate import splprep, splev
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from data_points import data_points
 
 # pygame setup
 pygame.init()
@@ -15,56 +16,6 @@ screen.fill("white")
 global ds, dt
 ds = 10 # difference in arc length (used in parameterization)
 dt = 20 # difference in time (used in csf calculation)
-
-
-def interpolate(curve_data): # reparameterizes and interpolates the curve to with respect arc length (ds)
-    x = np.array([point[0] for point in curve_data])
-    y = np.array([point[1] for point in curve_data])
-    arc_lengths = np.zeros(len(curve_data))
-
-    for i in range(1, len(curve_data)):
-        arc_lengths[i] = arc_lengths[i-1] + math.dist(curve_data[i-1], curve_data[i]) # stores the partial sum of arclength at each point
-    normalized_arc_lengths = arc_lengths/arc_lengths[-1] # maps arc lengths to [0, 1] by dividing by the total arc length
-
-    tck, u = splprep([x, y], u=normalized_arc_lengths, s=0) # performs spline interpolation based off of the parameter arc length
-    new_t = np.linspace(0, 1, round(arc_lengths[-1]/ds))
-    new_x, new_y = splev(new_t, tck)
-
-    """
-    plt.plot(x, y, 'o', label='Original points')
-    plt.plot(new_x, new_y, '-', label='Interpolated curve')
-    plt.legend()
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Arc Length Parameterized Spline Interpolation')
-    plt.show()
-    """
-
-    new_data = [[x, y] for x, y in zip(new_x, new_y)]
-    return new_data
-
-
-def connect_endpoints(curve_data):
-    start_point = curve_data[0]
-    end_point = curve_data[-1]
-    dist = math.dist(start_point, end_point)
-    num_points = round(dist/20)
-    if num_points == 0:
-        return curve_data
-    x_diff = (curve_data[-1][0]-curve_data[0][0]) / num_points
-    y_diff = (curve_data[-1][1]-curve_data[0][1]) / num_points
-    for i in range(1, num_points):
-        curve_data.append((end_point[0]-((i)*x_diff), end_point[1]-((i)*y_diff)))
-    return curve_data
-
-
-def collect_data(drawing, curve_data): # extends curve to current mouse position
-    if drawing:
-        position = pygame.mouse.get_pos()
-        if len(curve_data) >= 1 and position == curve_data[-1]:
-            return curve_data
-        curve_data.append(position)
-    return curve_data
 
 
 def draw_curve(screen, curve_data): # draws the curve
@@ -146,7 +97,7 @@ def update_display(screen, curve_data): # update display
 started = False
 running = True
 drawing = False
-curve_data = list()
+curve_data = data_points
 
 while running:
     
@@ -156,23 +107,9 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        elif event.type == pygame.MOUSEBUTTONDOWN and not started:
-            drawing = True
-        
-        elif event.type == pygame.MOUSEBUTTONUP and not started:
-            print("called")
-            if drawing:
-                curve_data = connect_endpoints(curve_data)
-                curve_data = interpolate(curve_data)
-            drawing = False
-
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_q: # quit program
                 running = False
-
-            elif event.key == pygame.K_DELETE or event.key == pygame.K_x:
-                curve_data = list()
-                started = False
             
             elif (event.key == pygame.K_RETURN or event.key == pygame.K_s) and not started: # start simulation
                 started = True
@@ -180,8 +117,6 @@ while running:
             elif event.key == pygame.K_t: # for testing
                 print("test started")
 
-    if drawing:
-        curve_data = collect_data(drawing, curve_data)
     if started:
         curve_data = csf(curve_data)
     update_display(screen, curve_data)
