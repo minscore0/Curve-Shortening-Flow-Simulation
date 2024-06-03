@@ -3,7 +3,7 @@ from scipy.interpolate import splprep, splev
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from data_points import data_points
+from data_points import *
 
 # pygame setup
 pygame.init()
@@ -97,7 +97,7 @@ def update_display(screen, curve_data): # update display
 started = False
 running = True
 drawing = False
-curve_data = data_points
+curve_data = sine_wave
 
 while running:
     

@@ -18,3 +18,4 @@ circle_points_list = circle_points.tolist()
 # Print the list of points
 print(circle_points_list)
 print(len(circle_points_list))
+
