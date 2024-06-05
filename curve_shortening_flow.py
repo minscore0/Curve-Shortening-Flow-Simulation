@@ -67,15 +67,6 @@ def collect_data(drawing, curve_data): # extends curve to current mouse position
     return curve_data
 
 
-def draw_curve(screen, curve_data): # draws the curve
-    if len(curve_data) < 2:
-        return
-    for point in range(len(curve_data)-1):
-        pygame.draw.aaline(screen, "black", curve_data[point], curve_data[point+1])
-    pygame.draw.aaline(screen, "black", curve_data[0], curve_data[-1])
-    return
-
-
 def remove_repeats(input_list):
     if not input_list:
         return []
@@ -131,12 +122,28 @@ def csf(curve_data): # updates curve data according to curve shortening flow
         curve_data[i][0] += dt * K * N[0]
         curve_data[i][1] += dt * K * N[1]
 
-    return interpolate(curve_data)
+    # feature scaling for colorization (using min-max normalization)
+    abs_curvature = [abs(x) for x in curvatures]
+    scaled_curvature = [(x - min(abs_curvature))/(max(abs_curvature)-min(abs_curvature)) for x in abs_curvature]
+
+    return interpolate(curve_data), scaled_curvature
 
 
-def update_display(screen, curve_data): # update display
+def draw_curve(screen, curve_data, scaled_curvature): # draws the curve
+    if len(curve_data) < 2:
+        return
+    if scaled_curvature is not None:
+        for i in range(len(curve_data)):
+            pygame.draw.aaline(screen, ((1/.7)*max((0, scaled_curvature[i]-0.3))*255, 0, 0), curve_data[i], curve_data[(i+1)%len(curve_data)])
+    else:
+        for i in range(len(curve_data)):
+            pygame.draw.aaline(screen, "black", curve_data[i], curve_data[(i+1)%len(curve_data)])
+    return
+
+
+def update_display(screen, curve_data, scaled_curvature=None): # update display
     screen.fill("white")
-    draw_curve(screen, curve_data)
+    draw_curve(screen, curve_data, scaled_curvature)
     pygame.display.flip()
     return
 
@@ -146,10 +153,11 @@ started = False
 running = True
 drawing = False
 curve_data = list()
+scaled_curvature = None
 
 while running:
     
-    clock.tick(60)
+    clock.tick(80)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -171,6 +179,7 @@ while running:
 
             elif event.key == pygame.K_DELETE or event.key == pygame.K_x:
                 curve_data = list()
+                scaled_curvature = None
                 started = False
             
             elif (event.key == pygame.K_RETURN or event.key == pygame.K_s) and not started: # start simulation
@@ -181,10 +190,9 @@ while running:
     if started:
         if len(curve_data) <= 3:
             curve_data = list()
+            scaled_curvature = None
             started = False
             continue
-        curve_data = csf(curve_data)
-    update_display(screen, curve_data)
+        curve_data, scaled_curvature = csf(curve_data)
+    update_display(screen, curve_data, scaled_curvature)
 pygame.quit()
-
-### IDEAS
