@@ -13,8 +13,8 @@ screen.fill("white")
 
 # global constants
 global ds, dt
-ds = 10 # difference in arc length (used in parameterization)
-dt = 20 # difference in time (used in csf calculation)
+ds = 5 # difference in arc length (used in parameterization)
+dt = 10 # difference in time (used in csf calculation)
 
 
 def interpolate(curve_data): # reparameterizes and interpolates the curve to with respect arc length (ds)
@@ -90,49 +90,48 @@ def remove_repeats(input_list):
 
 
 def curve_and_normal(point_1, point_2, point_3): # calculates curvature and normal vector at point_2
-    dx = abs(point_3[0] - point_2[0])
-    ddx = abs(dx - (point_2[0] - point_1[0]))
-    dy = abs(point_3[1] - point_2[1])
-    ddy = abs(dx - (point_2[1] - point_1[1]))
+    # tangent vectors
+    tan_1 = (point_3[0]-point_2[0], point_3[1]-point_2[1])
+    tan_2 = (point_2[0]-point_1[0], point_2[1]-point_1[1])
 
-    if (dx**2 + dy**2) == 0:
-        return 0, (0, 0)
+    # lenghs of tangent vectors
+    tan_1_norm = math.dist((0, 0), tan_1)
+    tan_2_norm = math.dist((0, 0), tan_2)
 
-    K = (dx*ddy - dy*ddx)/((dx**2 + dy**2)**(3/2))
-    """
-    T = (dx/math.sqrt(dx**2 + dy**2), dy/math.sqrt(dx**2 + dy**2))
-    N = (T[0]/math.sqrt(T[0]**2+T[1]**2), T[1]/math.sqrt(T[0]**2+T[1]**2))
-    """
-    N = (-1*dy/math.sqrt(dx**2+dy**2), dx/math.sqrt(dx**2+dy**2))
+    # unit tangent vectors
+    tan_1 = (tan_1[0]/tan_1_norm, tan_1[1]/tan_1_norm)
+    tan_2 = (tan_2[0]/tan_2_norm, tan_2[1]/tan_2_norm)
 
-    return K, N
+    normal = [tan_1[1]+tan_2[1], -(tan_1[0]+tan_2[0])]
+    normal[0] /= math.dist((0, 0), normal)
+    normal[1] /= math.dist((0, 0), normal)
+
+    curvature = 2 * (tan_1[0]*tan_2[1] - tan_1[1]*tan_2[0]) / (tan_1_norm + tan_2_norm)
+
+    return curvature, normal
 
 
 def csf(curve_data): # updates curve data according to curve shortening flow
 
-    KN_pairs = list()
-    new_curve_data = list()
+    curvatures = list()
+    normals = list()
 
     for i in range(len(curve_data)):
-
         point_2 = curve_data[i]
         point_1 = curve_data[i - 1]
         point_3 = curve_data[(i + 1) % len(curve_data)]
     
         K, N = curve_and_normal(point_1, point_2, point_3)
-        KN_pairs.append((K, N))
+        curvatures.append(K)
+        normals.append(N)
 
     for i in range(len(curve_data)):
-        point_2 = curve_data[i]
-        K, N = KN_pairs[i]
-        x = point_2[0] + 1*dt*K*N[0]
-        y = point_2[1] + 1*dt*K*N[1]
-        new_curve_data.append([x, y])
-        print(new_curve_data)
-        print(curve_data)
+        K = curvatures[i]
+        N = normals[i]
+        curve_data[i][0] += dt * K * N[0]
+        curve_data[i][1] += dt * K * N[1]
 
-    #return interpolate(remove_repeats(new_curve_data))
-    return remove_repeats(new_curve_data)
+    return interpolate(curve_data)
 
 
 def update_display(screen, curve_data): # update display
@@ -177,12 +176,13 @@ while running:
             elif (event.key == pygame.K_RETURN or event.key == pygame.K_s) and not started: # start simulation
                 started = True
 
-            elif event.key == pygame.K_t: # for testing
-                print("test started")
-
     if drawing:
         curve_data = collect_data(drawing, curve_data)
     if started:
+        if len(curve_data) <= 3:
+            curve_data = list()
+            started = False
+            continue
         curve_data = csf(curve_data)
     update_display(screen, curve_data)
 pygame.quit()
