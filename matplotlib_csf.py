@@ -38,9 +38,13 @@ def curvature_and_normal(point_1, point_2, point_3):
     normal_vec = [tan_1[1]+tan_2[1], -(tan_1[0]+tan_2[0])]
     normal_vec[0] /= math.dist((0, 0), normal_vec)
     normal_vec[1] /= math.dist((0, 0), normal_vec)
-        
+    
+    tan = ((tan_1[0] + tan_2[0])/2, (tan_1[1] + tan_2[1])/2)
+    dtan = (tan_2[0]-tan_1[0], tan_2[1]-tan_1[1])
+
     # Curvature
     curvature = 2 * (tan_1[0]*tan_2[1] - tan_1[1]*tan_2[0]) / (tan_1_norm + tan_2_norm)
+    #curvature = (tan[0]*dtan[1] - tan[1]*dtan[0])/(1)**(3/2)
     
     return curvature, normal_vec
 

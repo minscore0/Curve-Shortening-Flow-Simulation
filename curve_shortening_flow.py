@@ -67,19 +67,6 @@ def collect_data(drawing, curve_data): # extends curve to current mouse position
     return curve_data
 
 
-def remove_repeats(input_list):
-    if not input_list:
-        return []
-
-    result = [input_list[0]]  # Start with the first element
-    for num in input_list[1:]:
-        if math.dist(num, result[-1]) > ds:
-        #if (round(num[0]), round(num[1])) != (round(result[-1][0]), round(result[-1][1])):  # Only add if it's different from the last added
-            result.append(num)
-    
-    return result
-
-
 def curve_and_normal(point_1, point_2, point_3): # calculates curvature and normal vector at point_2
     # tangent vectors
     tan_1 = (point_3[0]-point_2[0], point_3[1]-point_2[1])
@@ -141,9 +128,29 @@ def draw_curve(screen, curve_data, scaled_curvature): # draws the curve
     return
 
 
-def update_display(screen, curve_data, scaled_curvature=None): # update display
+def draw_buttons(screen, font, button_data):
+    text1 = font.render("Pause simulation", True, (0, 0, 0))
+    text2 = font.render("Maintain arc length", True, (0, 0, 0))
+    text1_rect = text1.get_rect()
+    text1_rect.center = (125, 42)
+    text2_rect = text2.get_rect()
+    text2_rect.center = (135, 87)
+    screen.blit(text1, text1_rect)
+    screen.blit(text2, text2_rect)
+
+    for i in range(2):
+        if button_data[i] == True:
+            pygame.draw.polygon(screen, (15, 191, 62), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)])
+            pygame.draw.polygon(screen, (64, 64, 64), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)], 2)
+        else:
+            pygame.draw.polygon(screen, (200, 200, 200), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)])
+            pygame.draw.polygon(screen, (64, 64, 64), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)], 2)
+
+
+def update_display(screen, curve_data, button_data, font, scaled_curvature=None): # update display
     screen.fill("white")
     draw_curve(screen, curve_data, scaled_curvature)
+    draw_buttons(screen, font, button_data)
     pygame.display.flip()
     return
 
@@ -154,6 +161,10 @@ running = True
 drawing = False
 curve_data = list()
 scaled_curvature = None
+button_data = [False, False]
+
+font1 = pygame.font.Font("freesansbold.ttf", 16)
+test = font1.render("Pause simulation", True, (255, 255, 255))
 
 while running:
     
@@ -163,8 +174,14 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        elif event.type == pygame.MOUSEBUTTONDOWN and not started:
-            drawing = True
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if not drawing:
+                if math.dist(pygame.mouse.get_pos(), (40, 40)) <= 15:
+                    button_data[0] = not button_data[0]
+                elif math.dist(pygame.mouse.get_pos(), (40, 85)) <= 15:
+                    button_data[1] = not button_data[1]
+                elif not started:
+                    drawing = True
         
         elif event.type == pygame.MOUSEBUTTONUP and not started:
             print("called")
@@ -187,12 +204,12 @@ while running:
 
     if drawing:
         curve_data = collect_data(drawing, curve_data)
-    if started:
+    if started and not button_data[0]:
         if len(curve_data) <= 3:
             curve_data = list()
             scaled_curvature = None
             started = False
             continue
         curve_data, scaled_curvature = csf(curve_data)
-    update_display(screen, curve_data, scaled_curvature)
+    update_display(screen, curve_data, button_data, font1, scaled_curvature)
 pygame.quit()
