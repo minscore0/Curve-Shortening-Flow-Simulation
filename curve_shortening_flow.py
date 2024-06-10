@@ -80,7 +80,7 @@ def curve_and_normal(point_1, point_2, point_3): # calculates curvature and norm
     tan_1 = (tan_1[0]/tan_1_norm, tan_1[1]/tan_1_norm)
     tan_2 = (tan_2[0]/tan_2_norm, tan_2[1]/tan_2_norm)
 
-    normal = [tan_1[1]+tan_2[1], -(tan_1[0]+tan_2[0])]
+    normal = [-(tan_1[1]+tan_2[1]), (tan_1[0]+tan_2[0])]
     normal[0] /= math.dist((0, 0), normal)
     normal[1] /= math.dist((0, 0), normal)
 
@@ -89,7 +89,7 @@ def curve_and_normal(point_1, point_2, point_3): # calculates curvature and norm
     return curvature, normal
 
 
-def csf(curve_data): # updates curve data according to curve shortening flow
+def csf(curve_data, ncsf): # updates curve data according to curve shortening flow
 
     curvatures = list()
     normals = list()
@@ -103,11 +103,13 @@ def csf(curve_data): # updates curve data according to curve shortening flow
         curvatures.append(K)
         normals.append(N)
 
+        total_length = sum([math.dist(curve_data[i], curve_data[i+1]) for i in range(-1, len(curve_data)-1)])
+
     for i in range(len(curve_data)):
         K = curvatures[i]
         N = normals[i]
-        curve_data[i][0] += dt * K * N[0]
-        curve_data[i][1] += dt * K * N[1]
+        curve_data[i][0] -= dt * K * N[0]
+        curve_data[i][1] -= dt * K * N[1]
 
     # feature scaling for colorization (using min-max normalization)
     abs_curvature = [abs(x) for x in curvatures]
@@ -130,15 +132,15 @@ def draw_curve(screen, curve_data, scaled_curvature): # draws the curve
 
 def draw_buttons(screen, font, button_data):
     text1 = font.render("Pause simulation", True, (0, 0, 0))
-    text2 = font.render("Maintain arc length", True, (0, 0, 0))
+    #text2 = font.render("Maintain arc length", True, (0, 0, 0))
     text1_rect = text1.get_rect()
     text1_rect.center = (125, 42)
-    text2_rect = text2.get_rect()
-    text2_rect.center = (135, 87)
+    #text2_rect = text2.get_rect()
+    #text2_rect.center = (135, 87)
     screen.blit(text1, text1_rect)
-    screen.blit(text2, text2_rect)
+    #screen.blit(text2, text2_rect)
 
-    for i in range(2):
+    for i in range(1):
         if button_data[i] == True:
             pygame.draw.polygon(screen, (15, 191, 62), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)])
             pygame.draw.polygon(screen, (64, 64, 64), [(30, 30 + i*45), (30, 50 + i*45), (50, 50 + i*45), (50, 30 + i*45)], 2)
@@ -184,7 +186,6 @@ while running:
                     drawing = True
         
         elif event.type == pygame.MOUSEBUTTONUP and not started:
-            print("called")
             if drawing:
                 curve_data = connect_endpoints(curve_data)
                 curve_data = interpolate(curve_data)
@@ -210,6 +211,11 @@ while running:
             scaled_curvature = None
             started = False
             continue
-        curve_data, scaled_curvature = csf(curve_data)
+        curve_data, scaled_curvature = csf(curve_data, button_data[1])
     update_display(screen, curve_data, button_data, font1, scaled_curvature)
 pygame.quit()
+
+### IDEAS
+# functionality for non closed shapes (fixed endpoints)
+# maintain arc length
+# fix color issues (low priority)
